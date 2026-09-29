@@ -1,0 +1,4 @@
+// Update these before launch. The App Store requires working links to both pages.
+export const TERMS_URL = 'https://cheers-social.com/terms';
+export const PRIVACY_URL = 'https://cheers-social.com/privacy';
+export const SUPPORT_EMAIL = 'support@cheers-social.com';

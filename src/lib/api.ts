@@ -273,6 +273,58 @@ export async function cheersBack(id: string) {
   if (error) throw error;
 }
 
+/* ---------------- Safety ---------------- */
+
+export type ReportReason = 'nudity' | 'harassment' | 'violence' | 'underage' | 'spam' | 'other';
+
+export async function reportContent(opts: {
+  reportedUserId: string;
+  cheersId?: string;
+  photoPath?: string;
+  reason: ReportReason;
+  details?: string;
+}) {
+  const { error } = await supabase.from('reports').insert({
+    reported_user_id: opts.reportedUserId,
+    cheers_id: opts.cheersId ?? null,
+    photo_path: opts.photoPath ?? null,
+    reason: opts.reason,
+    details: opts.details?.trim() || null,
+  });
+  if (error) throw error;
+}
+
+/** Blocks someone: ends the friendship, stops requests and CHEERS!, and hides theirs from you. */
+export async function blockUser(userId: string) {
+  const { error } = await supabase.rpc('block_user', { target: userId });
+  if (error) throw error;
+}
+
+export async function unblockUser(userId: string) {
+  const { error } = await supabase
+    .from('blocks')
+    .delete()
+    .eq('blocker_id', await myId())
+    .eq('blocked_id', userId);
+  if (error) throw error;
+}
+
+export async function listBlocked(): Promise<Profile[]> {
+  const { data, error } = await supabase
+    .from('blocks')
+    .select(`blocked:profiles!blocks_blocked_id_fkey(${PROFILE_FIELDS})`)
+    .eq('blocker_id', await myId());
+  if (error) throw error;
+  return (data as any[]).map((r) => r.blocked).filter(Boolean);
+}
+
+/** Permanently deletes the account and everything in it, then signs out. */
+export async function deleteAccount() {
+  const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
+  if (error) throw error;
+  await supabase.auth.signOut({ scope: 'local' });
+}
+
 /* ---------------- Live updates ---------------- */
 
 /**

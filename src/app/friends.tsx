@@ -2,11 +2,16 @@ import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { acceptFriendRequest, findByUsername, listFriends, Profile, removeFriend, sendFriendRequest } from '../lib/api';
+import {
+  acceptFriendRequest, blockUser, findByUsername, listBlocked, listFriends,
+  Profile, removeFriend, sendFriendRequest, unblockUser,
+} from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Theme, useTheme } from '../lib/theme';
 import { Avatar } from '../components/Avatar';
 import { PrimaryButton } from '../components/Buttons';
+
+type Lists = { friends: Profile[]; incoming: Profile[]; outgoing: Profile[]; blocked: Profile[] };
 
 export default function Friends() {
   const t = useTheme();
@@ -15,9 +20,13 @@ export default function Friends() {
   const { profile } = useAuth();
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
-  const [data, setData] = useState<{ friends: Profile[]; incoming: Profile[]; outgoing: Profile[] }>({ friends: [], incoming: [], outgoing: [] });
+  const [data, setData] = useState<Lists>({ friends: [], incoming: [], outgoing: [], blocked: [] });
 
-  const load = useCallback(() => { listFriends().then(setData).catch(() => {}); }, []);
+  const load = useCallback(() => {
+    Promise.all([listFriends(), listBlocked()])
+      .then(([f, blocked]) => setData({ ...f, blocked }))
+      .catch(() => {});
+  }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   async function add() {
@@ -33,7 +42,9 @@ export default function Friends() {
       Alert.alert('Request sent', `${found.display_name} will see your request next time they open CHEERS!`);
       load();
     } catch (e: any) {
-      Alert.alert('Request didn’t send', e.code === '23505' ? 'You already have a request or friendship with this person.' : e.message);
+      Alert.alert('Request didn’t send', e.code === '23505'
+        ? 'You already have a request or friendship with this person.'
+        : 'You can’t send a request to this person.');
     } finally {
       setSearching(false);
     }
@@ -49,6 +60,35 @@ export default function Friends() {
       isRequest ? undefined : 'You won’t be able to send each other CHEERS! until you reconnect.',
       [{ text: 'Keep', style: 'cancel' },
        { text: isRequest ? 'Cancel request' : 'Remove', style: 'destructive', onPress: () => removeFriend(p.id).then(load) }]);
+  }
+
+  function confirmBlock(p: Profile) {
+    Alert.alert(`Block ${p.display_name}?`,
+      'They won’t be able to send you CHEERS! or friend requests, and their CHEERS! will be hidden from you. They won’t be notified.',
+      [{ text: 'Cancel', style: 'cancel' },
+       { text: 'Block', style: 'destructive', onPress: () => blockUser(p.id).then(load).catch((e) => Alert.alert('Block didn’t work', e.message)) }]);
+  }
+
+  function decline(p: Profile) {
+    Alert.alert(`Decline ${p.display_name}’s request?`, undefined, [
+      { text: 'Decline', onPress: () => removeFriend(p.id).then(load) },
+      { text: 'Decline and block', style: 'destructive', onPress: () => confirmBlock(p) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  function manage(p: Profile) {
+    Alert.alert(p.display_name, `@${p.username}`, [
+      { text: 'Remove friend', onPress: () => confirmRemove(p, false) },
+      { text: `Block ${p.display_name}`, style: 'destructive', onPress: () => confirmBlock(p) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  function unblock(p: Profile) {
+    Alert.alert(`Unblock ${p.display_name}?`, 'They’ll be able to send you friend requests again. You’d need to reconnect as friends to swap CHEERS!',
+      [{ text: 'Cancel', style: 'cancel' },
+       { text: 'Unblock', onPress: () => unblockUser(p.id).then(load) }]);
   }
 
   const Row = ({ p, action }: { p: Profile; action: React.ReactNode }) => (
@@ -86,7 +126,7 @@ export default function Friends() {
         {data.incoming.map((p) => (
           <Row key={p.id} p={p} action={
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Pressable onPress={() => confirmRemove(p, true)} style={s.smallBtn}><Text style={s.muted}>Decline</Text></Pressable>
+              <Pressable onPress={() => decline(p)} style={s.smallBtn}><Text style={s.muted}>Decline</Text></Pressable>
               <Pressable onPress={() => accept(p)} style={[s.smallBtn, { backgroundColor: t.accent, borderColor: t.accent }]}>
                 <Text style={{ color: t.onAccent, fontWeight: '700' }}>Accept</Text>
               </Pressable>
@@ -104,9 +144,18 @@ export default function Friends() {
         <Text style={s.label}>Your friends</Text>
         {data.friends.length ? data.friends.map((p) => (
           <Row key={p.id} p={p} action={
-            <Pressable onPress={() => confirmRemove(p, false)} hitSlop={8}><Text style={s.muted}>Remove</Text></Pressable>
+            <Pressable onPress={() => manage(p)} hitSlop={10} accessibilityLabel={`Options for ${p.display_name}`} style={s.more}>
+              <Text style={{ color: t.muted, fontSize: 20, fontWeight: '800' }}>•••</Text>
+            </Pressable>
           } />
         )) : <Text style={s.muted}>No friends yet. Add someone by their username above.</Text>}
+
+        {data.blocked.length > 0 && <Text style={s.label}>Blocked</Text>}
+        {data.blocked.map((p) => (
+          <Row key={p.id} p={p} action={
+            <Pressable onPress={() => unblock(p)} style={s.smallBtn}><Text style={s.muted}>Unblock</Text></Pressable>
+          } />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -123,4 +172,5 @@ const styles = (t: Theme) => StyleSheet.create({
   name: { color: t.ink, fontWeight: '700', fontSize: 16 },
   muted: { color: t.muted, fontSize: 14 },
   smallBtn: { borderWidth: 1.5, borderColor: t.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  more: { paddingHorizontal: 6, paddingVertical: 4 },
 });

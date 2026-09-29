@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { isUsernameAvailable, signIn, signUp } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { Theme, useTheme, WORDMARK_FONT } from '../lib/theme';
 import { PrimaryButton } from '../components/Buttons';
+import { TERMS_URL } from '../lib/config';
 
 const USERNAME_RULE = /^[a-z0-9_]{3,20}$/;
 
@@ -17,11 +18,12 @@ export default function SignIn() {
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [ofAge, setOfAge] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const signingUp = mode === 'up';
   const ready = email.includes('@') && password.length >= 8 &&
-    (!signingUp || (USERNAME_RULE.test(username.toLowerCase()) && displayName.trim() && ofAge));
+    (!signingUp || (USERNAME_RULE.test(username.toLowerCase()) && displayName.trim() && ofAge && agreed));
 
   async function submit() {
     setBusy(true);
@@ -68,6 +70,14 @@ export default function SignIn() {
               <View style={s.ageRow}>
                 <Switch value={ofAge} onValueChange={setOfAge} trackColor={{ true: t.accent }} />
                 <Text style={s.ageText}>I’m of legal drinking age where I live</Text>
+              </View>
+              <View style={s.ageRow}>
+                <Switch value={agreed} onValueChange={setAgreed} trackColor={{ true: t.accent }} />
+                <Text style={s.ageText}>
+                  I agree to the{' '}
+                  <Text style={{ color: t.accent, fontWeight: '700' }} onPress={() => Linking.openURL(TERMS_URL)}>Terms of use</Text>
+                  , including no tolerance for objectionable content or abusive behavior
+                </Text>
               </View>
             </>
           )}

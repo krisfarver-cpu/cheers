@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { FriendSummary, getHistorySummary, signOut } from '../../lib/api';
+import { FriendSummary, getHistorySummary } from '../../lib/api';
 import { ago } from '../../lib/format';
 import { useTheme, WORDMARK_FONT } from '../../lib/theme';
 import { FriendsButton, Header } from '../../components/Header';
@@ -56,8 +56,8 @@ export default function History() {
           </Text>
         )}
         ListFooterComponent={
-          <Pressable onPress={signOut} style={{ padding: 24, alignItems: 'center' }}>
-            <Text style={{ color: t.muted, fontWeight: '600' }}>Sign out</Text>
+          <Pressable onPress={() => router.push('/account')} style={{ padding: 24, alignItems: 'center' }}>
+            <Text style={{ color: t.muted, fontWeight: '600' }}>Account and settings</Text>
           </Pressable>
         }
         refreshControl={<RefreshControl refreshing={refreshing} tintColor={t.accent}

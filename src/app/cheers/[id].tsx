@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { Cheers, cheersBack, getCheers, markOpened, setLiked } from '../../lib/api';
+import { blockUser, Cheers, cheersBack, getCheers, markOpened, setLiked } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { fullDate } from '../../lib/format';
 import { usePhotoUrls } from '../../lib/usePhotoUrls';
@@ -54,6 +54,34 @@ export default function CheersViewer() {
     catch (e: any) { setC(c); Alert.alert('Your CHEERS! back didn’t send', e.message); }
   }
 
+  function openMenu() {
+    Alert.alert(other.display_name, undefined, [
+      {
+        text: 'Report this CHEERS!',
+        onPress: () => router.push({
+          pathname: '/report',
+          params: { userId: other.id, cheersId: c!.id, photoPath: c!.photo_path, name: other.display_name },
+        }),
+      },
+      { text: `Block ${other.display_name}`, style: 'destructive', onPress: confirmBlock },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  function confirmBlock() {
+    Alert.alert(`Block ${other.display_name}?`,
+      'They won’t be able to send you CHEERS! or friend requests, and their CHEERS! will be hidden from you. They won’t be notified.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block', style: 'destructive', onPress: async () => {
+            try { await blockUser(other.id); router.dismissTo('/'); }
+            catch (e: any) { Alert.alert('Block didn’t work', e.message); }
+          },
+        },
+      ]);
+  }
+
   const reactions = [
     c.liked_at && `${other.display_name} liked it`,
     c.cheered_back_at && `${other.display_name} cheered back 🥂`,
@@ -62,6 +90,11 @@ export default function CheersViewer() {
   return (
     <SafeAreaView style={s.fill}>
       <View style={s.top}>
+        {incoming ? (
+          <Pressable onPress={openMenu} accessibilityLabel="Report or block" style={s.close}>
+            <Text style={{ color: t.ink, fontSize: 16, fontWeight: '800' }}>•••</Text>
+          </Pressable>
+        ) : <View />}
         <Pressable onPress={close} accessibilityLabel="Close" style={s.close}><Text style={{ color: t.ink, fontSize: 18 }}>✕</Text></Pressable>
       </View>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
@@ -105,7 +138,7 @@ export default function CheersViewer() {
 
 const styles = (t: Theme) => StyleSheet.create({
   fill: { flex: 1, backgroundColor: t.bg },
-  top: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingTop: 8 },
+  top: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8 },
   close: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: t.line, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center' },
   photo: { aspectRatio: 1, borderRadius: 28, overflow: 'hidden', backgroundColor: t.line },
   loc: { position: 'absolute', left: 12, bottom: 12, right: 12, alignItems: 'flex-start' },

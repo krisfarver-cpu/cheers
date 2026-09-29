@@ -49,6 +49,8 @@ function RootNavigator() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="cheers/[id]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="friends" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="report" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="account" options={{ presentation: 'modal' }} />
           <Stack.Screen name="thread/[friendId]" options={{
             headerShown: true, title: '', headerBackTitle: 'History', headerTintColor: t.ink,
             headerStyle: { backgroundColor: t.bg }, headerShadowVisible: false,
