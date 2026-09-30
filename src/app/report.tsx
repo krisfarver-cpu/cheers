@@ -53,7 +53,7 @@ export default function Report() {
           <Text style={{ color: t.ink, fontSize: 18 }}>✕</Text>
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 10 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 10, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
         <Text style={s.muted}>
           {cheersId ? `What’s wrong with this CHEERS! from ${who}?` : `What’s going on with ${who}?`} {who} won’t know you reported them.
         </Text>

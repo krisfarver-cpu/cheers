@@ -18,6 +18,23 @@ export function PrimaryButton({ title, onPress, disabled, loading, style }: {
   );
 }
 
+export function SecondaryButton({ title, onPress, disabled, loading, style }: {
+  title: string; onPress: () => void; disabled?: boolean; loading?: boolean; style?: ViewStyle;
+}) {
+  const t = useTheme();
+  const off = disabled || loading;
+  return (
+    <Pressable onPress={onPress} disabled={off} accessibilityRole="button" accessibilityState={{ disabled: off }}
+      style={({ pressed }) => [{
+        borderWidth: 2, borderColor: t.accent, borderRadius: 999, paddingVertical: 14, paddingHorizontal: 20,
+        alignItems: 'center', opacity: off ? 0.45 : pressed ? 0.7 : 1,
+      }, style]}>
+      {loading ? <ActivityIndicator color={t.accent} /> :
+        <Text style={{ color: t.accent, fontWeight: '800', fontSize: 16 }}>{title}</Text>}
+    </Pressable>
+  );
+}
+
 export function Chip({ label, selected, onPress, left }: {
   label: string; selected?: boolean; onPress: () => void; left?: React.ReactNode;
 }) {

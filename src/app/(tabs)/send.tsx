@@ -6,9 +6,11 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { listFriends, Profile, sendCheers } from '../../lib/api';
 import { suggestPlaceName } from '../../lib/location';
+import { useAuth } from '../../lib/auth';
+import { inviteMessage, shareCheersPhoto } from '../../lib/share';
 import { Theme, useTheme } from '../../lib/theme';
 import { Header } from '../../components/Header';
-import { Chip, PrimaryButton } from '../../components/Buttons';
+import { Chip, PrimaryButton, SecondaryButton } from '../../components/Buttons';
 import { Avatar } from '../../components/Avatar';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
 
@@ -27,6 +29,7 @@ export default function Send() {
   const t = useTheme();
   const s = styles(t);
   const router = useRouter();
+  const { profile } = useAuth();
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [location, setLocation] = useState('');
   const [locating, setLocating] = useState(false);
@@ -35,6 +38,8 @@ export default function Send() {
   const [sending, setSending] = useState(false);
   const [clink, setClink] = useState(0);
   const [sentNote, setSentNote] = useState('');
+  const [lastSent, setLastSent] = useState<{ uri: string; location: string } | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   useFocusEffect(useCallback(() => {
     listFriends().then((r) => setFriends(r.friends)).catch(() => {});
@@ -54,6 +59,7 @@ export default function Send() {
     if (!res.canceled) {
       setPhoto({ uri: res.assets[0].uri, mimeType: res.assets[0].mimeType });
       setSentNote('');
+      setLastSent(null);
     }
   }
 
@@ -81,6 +87,7 @@ export default function Send() {
     setSending(true);
     try {
       await sendCheers({ photoUri: photo.uri, mimeType: photo.mimeType, locationName: location, recipientIds: to });
+      setLastSent({ uri: photo.uri, location });
       setClink((n) => n + 1);
       setSentNote(`CHEERS! sent to ${names.length > 2 ? `${names.length} friends` : names.join(' and ')}`);
       setPhoto(null); setLocation(''); setTo([]);
@@ -88,6 +95,23 @@ export default function Send() {
       Alert.alert('Your CHEERS! didn’t send', e.message);
     } finally {
       setSending(false);
+    }
+  }
+
+  // Share the current photo, or the one just sent, to a group chat or anyone not on CHEERS!
+  const shareTarget = photo ? { uri: photo.uri, location } : lastSent;
+  async function share() {
+    if (!shareTarget) return;
+    setSharing(true);
+    try {
+      await shareCheersPhoto({
+        localUri: shareTarget.uri,
+        message: inviteMessage({ displayName: profile?.display_name, username: profile?.username, location: shareTarget.location.trim() }),
+      });
+    } catch (e: any) {
+      Alert.alert('Couldn’t open sharing', e.message);
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -135,6 +159,12 @@ export default function Send() {
         )}
 
         <PrimaryButton title={label} onPress={send} disabled={!photo || !to.length} loading={sending} style={{ marginTop: 16 }} />
+        <SecondaryButton
+          title={!photo && lastSent ? 'Also share to a group chat' : 'Share to a group chat'}
+          onPress={share} disabled={!shareTarget} loading={sharing} />
+        <Text style={{ color: t.muted, fontSize: 13, textAlign: 'center' }}>
+          Send it to a group text or anyone who isn’t on CHEERS! yet.
+        </Text>
       </ScrollView>
       <ClinkAnimation trigger={clink} />
     </SafeAreaView>
@@ -142,7 +172,7 @@ export default function Send() {
 }
 
 const styles = (t: Theme) => StyleSheet.create({
-  wrap: { padding: 20, gap: 12, paddingBottom: 40 },
+  wrap: { padding: 20, gap: 12, paddingBottom: 60 },
   h: { color: t.ink, fontSize: 24, fontWeight: '800' },
   shot: { aspectRatio: 1, borderRadius: 28, overflow: 'hidden', backgroundColor: t.surface, borderWidth: 2, borderColor: t.line, borderStyle: 'dashed' },
   shotEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },

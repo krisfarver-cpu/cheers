@@ -9,17 +9,19 @@ import { fullDate } from '../../lib/format';
 import { usePhotoUrls } from '../../lib/usePhotoUrls';
 import { Theme, useTheme } from '../../lib/theme';
 import { Avatar } from '../../components/Avatar';
-import { PrimaryButton } from '../../components/Buttons';
+import { PrimaryButton, SecondaryButton } from '../../components/Buttons';
+import { inviteMessage, shareCheersPhoto } from '../../lib/share';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
 
 export default function CheersViewer() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const t = useTheme();
   const s = styles(t);
   const router = useRouter();
   const [c, setC] = useState<Cheers | null>(null);
   const [clink, setClink] = useState(0);
+  const [sharing, setSharing] = useState(false);
   const photo = usePhotoUrls(c ? [c.photo_path] : []);
 
   useEffect(() => {
@@ -82,6 +84,23 @@ export default function CheersViewer() {
       ]);
   }
 
+  async function share() {
+    const url = photo(c!.photo_path);
+    if (!url) return;
+    setSharing(true);
+    try {
+      await shareCheersPhoto({
+        remoteUrl: url,
+        fileName: c!.photo_path.split('/').pop(),
+        message: inviteMessage({ displayName: profile?.display_name, username: profile?.username, location: c!.location_name }),
+      });
+    } catch (e: any) {
+      Alert.alert('Couldn’t open sharing', e.message);
+    } finally {
+      setSharing(false);
+    }
+  }
+
   const reactions = [
     c.liked_at && `${other.display_name} liked it`,
     c.cheered_back_at && `${other.display_name} cheered back 🥂`,
@@ -126,9 +145,12 @@ export default function CheersViewer() {
               title={c.cheered_back_at ? '🥂 You cheered back' : 'CHEERS! back'} />
           </View>
         ) : (
-          <Text style={{ color: t.muted, textAlign: 'center', fontSize: 15 }}>
-            {reactions || `Waiting on ${other.display_name}…`}
-          </Text>
+          <>
+            <Text style={{ color: t.muted, textAlign: 'center', fontSize: 15 }}>
+              {reactions || `Waiting on ${other.display_name}…`}
+            </Text>
+            <SecondaryButton title="Share to a group chat" onPress={share} loading={sharing} disabled={!photo(c.photo_path)} />
+          </>
         )}
       </ScrollView>
       <ClinkAnimation trigger={clink} />
