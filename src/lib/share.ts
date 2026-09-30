@@ -7,7 +7,7 @@ export function inviteMessage(opts: { displayName?: string | null; username?: st
   const from = opts.displayName ? ` from ${opts.displayName}` : '';
   const at = opts.location ? ` at ${opts.location}` : '';
   const addMe = opts.username ? ` Add me: @${opts.username}` : '';
-  return `🍻 CHEERS!${from}${at}. Get the app and cheers back: ${INVITE_URL}${addMe}`;
+  return `🍻 CHEERS!${from}${at}. Get the app and cheers back: ${INVITE_URL}${opts.username ? `/?from=${opts.username}` : ''}${addMe}`;
 }
 
 /**
