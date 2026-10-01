@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 const BUCKET = 'cheers-photos';
@@ -149,6 +150,22 @@ export async function listFriends() {
 
 /* ---------------- Sending ---------------- */
 
+async function uploadPhoto(path: string, uri: string, contentType: string) {
+  const attempt = async () => {
+    let body: any;
+    if (Platform.OS === 'android') {
+      body = new FormData();
+      body.append('file', { uri, name: path.split('/').pop(), type: contentType } as any);
+    } else {
+      body = await fetch(uri).then((r) => r.arrayBuffer());
+    }
+    const { error } = await supabase.storage.from(BUCKET).upload(path, body, { contentType, upsert: true });
+    if (error) throw error;
+  };
+  try { await attempt(); } catch (e) { await new Promise((r) => setTimeout(r, 1500)); await attempt(); }
+}
+
+
 /** Uploads one photo, then creates a CHEERS! row for each recipient. */
 export async function sendCheers(opts: {
   photoUri: string;
@@ -162,9 +179,7 @@ export async function sendCheers(opts: {
   const ext = contentType.split('/')[1] ?? 'jpg';
   const path = `${me}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-  const body = await fetch(opts.photoUri).then((r) => r.arrayBuffer());
-  const upload = await supabase.storage.from(BUCKET).upload(path, body, { contentType });
-  if (upload.error) throw upload.error;
+  await uploadPhoto(path, opts.photoUri, contentType);
 
   const location = opts.locationName?.trim() || null;
   const { data, error } = await supabase
