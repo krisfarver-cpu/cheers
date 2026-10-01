@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1078575539052",
+    "project_id": "cheers-a3389",
+    "storage_bucket": "cheers-a3389.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1078575539052:android:3b828e178b077cfa140949",
+        "android_client_info": {
+          "package_name": "com.cheerssocial.cheers"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDejmRTp4LntSWbmMeNFUp9HfD5X93ZMFg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
