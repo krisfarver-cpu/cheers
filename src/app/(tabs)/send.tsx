@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { listFriends, Profile, sendCheers } from '../../lib/api';
+import { cheersBack, listFriends, Profile, sendCheers } from '../../lib/api';
 import { suggestPlaceName } from '../../lib/location';
 import { useAuth } from '../../lib/auth';
 import { inviteMessage, shareCheersPhoto } from '../../lib/share';
@@ -30,6 +30,8 @@ export default function Send() {
   const s = styles(t);
   const router = useRouter();
   const { profile } = useAuth();
+  // Set when someone taps "Send a drink back" on a CHEERS! they received
+  const { replyTo, replyToUser } = useLocalSearchParams<{ replyTo?: string; replyToUser?: string }>();
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [location, setLocation] = useState('');
   const [locating, setLocating] = useState(false);
@@ -44,6 +46,14 @@ export default function Send() {
   useFocusEffect(useCallback(() => {
     listFriends().then((r) => setFriends(r.friends)).catch(() => {});
   }, []));
+
+  useEffect(() => {
+    if (replyTo && replyToUser) setTo([replyToUser]);
+  }, [replyTo, replyToUser]);
+
+  const replyName = friends.find((f) => f.id === replyToUser)?.display_name;
+  const replying = !!(replyTo && replyToUser);
+  const endReply = () => router.setParams({ replyTo: '', replyToUser: '' });
 
   async function pick(source: 'camera' | 'library') {
     if (source === 'camera') {
@@ -86,7 +96,12 @@ export default function Send() {
     if (!photo || !to.length) return;
     setSending(true);
     try {
-      await sendCheers({ photoUri: photo.uri, mimeType: photo.mimeType, locationName: location, recipientIds: to });
+      const isReply = replying && to.includes(replyToUser!);
+      await sendCheers({
+        photoUri: photo.uri, mimeType: photo.mimeType, locationName: location, recipientIds: to,
+        replyTo: isReply ? { id: replyTo!, toUserId: replyToUser! } : undefined,
+      });
+      if (isReply) { await cheersBack(replyTo!).catch(() => {}); endReply(); }
       setLastSent({ uri: photo.uri, location });
       setClink((n) => n + 1);
       setSentNote(`CHEERS! sent to ${names.length > 2 ? `${names.length} friends` : names.join(' and ')}`);
@@ -121,6 +136,14 @@ export default function Send() {
       <ScrollView contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
         <Text style={s.h}>Send a CHEERS!</Text>
 
+        {replying && (
+          <View style={s.replyBar}>
+            <Text style={{ color: t.ink, fontWeight: '700', flex: 1 }}>🍻 Cheering back to {replyName ?? 'your friend'}</Text>
+            <Pressable onPress={() => { endReply(); setTo([]); }} hitSlop={10}>
+              <Text style={{ color: t.muted, fontWeight: '600' }}>Cancel</Text>
+            </Pressable>
+          </View>
+        )}
         <View style={s.shot}>
           {photo ? (
             <Image source={photo.uri} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -177,6 +200,7 @@ const styles = (t: Theme) => StyleSheet.create({
   shot: { aspectRatio: 1, borderRadius: 28, overflow: 'hidden', backgroundColor: t.surface, borderWidth: 2, borderColor: t.line, borderStyle: 'dashed' },
   shotEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  replyBar: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: t.surface, borderWidth: 1.5, borderColor: t.accent, borderRadius: 16, padding: 14 },
   label: { color: t.ink, fontWeight: '700', fontSize: 16, marginTop: 12 },
   input: { backgroundColor: t.surface, borderWidth: 1.5, borderColor: t.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: t.ink },
 });

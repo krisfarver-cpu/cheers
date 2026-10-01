@@ -21,6 +21,7 @@ export type Cheers = {
   opened_at: string | null;
   liked_at: string | null;
   cheered_back_at: string | null;
+  reply_to_id?: string | null;
   sender?: Profile;
   recipient?: Profile;
 };
@@ -150,6 +151,10 @@ export async function listFriends() {
 
 /* ---------------- Sending ---------------- */
 
+/**
+ * Uploads a local photo. Android uses its native file upload, which is more reliable
+ * than sending raw bytes. If the connection drops partway, it tries once more.
+ */
 async function uploadPhoto(path: string, uri: string, contentType: string) {
   const attempt = async () => {
     let body: any;
@@ -162,7 +167,12 @@ async function uploadPhoto(path: string, uri: string, contentType: string) {
     const { error } = await supabase.storage.from(BUCKET).upload(path, body, { contentType, upsert: true });
     if (error) throw error;
   };
-  try { await attempt(); } catch (e) { await new Promise((r) => setTimeout(r, 1500)); await attempt(); }
+  try {
+    await attempt();
+  } catch (e) {
+    await new Promise((r) => setTimeout(r, 1500));
+    await attempt();
+  }
 }
 
 
@@ -172,6 +182,8 @@ export async function sendCheers(opts: {
   mimeType?: string | null;
   locationName?: string;
   recipientIds: string[];
+  /** When sending a drink back: the CHEERS! being answered, and who sent it */
+  replyTo?: { id: string; toUserId: string };
 }): Promise<Cheers[]> {
   if (!opts.recipientIds.length) throw new Error('Pick at least one friend');
   const me = await myId();
@@ -184,7 +196,10 @@ export async function sendCheers(opts: {
   const location = opts.locationName?.trim() || null;
   const { data, error } = await supabase
     .from('cheers')
-    .insert(opts.recipientIds.map((recipient_id) => ({ recipient_id, photo_path: path, location_name: location })))
+    .insert(opts.recipientIds.map((recipient_id) => ({
+      recipient_id, photo_path: path, location_name: location,
+      reply_to_id: opts.replyTo && opts.replyTo.toUserId === recipient_id ? opts.replyTo.id : null,
+    })))
     .select();
   if (error) throw error;
   return data;
@@ -285,6 +300,31 @@ export async function cheersBack(id: string) {
     .update({ cheered_back_at: new Date().toISOString() })
     .eq('id', id)
     .is('cheered_back_at', null);
+  if (error) throw error;
+}
+
+/* ---------------- Find friends from contacts ---------------- */
+
+export type ContactMatch = Profile & {
+  email_hash: string;
+  status: 'friends' | 'requested' | 'incoming' | 'none';
+};
+
+export async function matchContacts(hashes: string[]): Promise<ContactMatch[]> {
+  if (!hashes.length) return [];
+  const { data, error } = await supabase.rpc('match_contacts', { hashes });
+  if (error) throw error;
+  return data as ContactMatch[];
+}
+
+export async function getDiscoverable(): Promise<boolean> {
+  const { data, error } = await supabase.from('profiles').select('discoverable').eq('id', await myId()).single();
+  if (error) throw error;
+  return data.discoverable;
+}
+
+export async function setDiscoverable(on: boolean) {
+  const { error } = await supabase.from('profiles').update({ discoverable: on }).eq('id', await myId());
   if (error) throw error;
 }
 

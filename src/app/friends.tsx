@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
@@ -9,7 +9,8 @@ import {
 import { useAuth } from '../lib/auth';
 import { Theme, useTheme } from '../lib/theme';
 import { Avatar } from '../components/Avatar';
-import { PrimaryButton } from '../components/Buttons';
+import { PrimaryButton, SecondaryButton } from '../components/Buttons';
+import { ContactResult, findFriendsFromContacts } from '../lib/contacts';
 
 type Lists = { friends: Profile[]; incoming: Profile[]; outgoing: Profile[]; blocked: Profile[] };
 
@@ -20,6 +21,8 @@ export default function Friends() {
   const { profile } = useAuth();
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
+  const [contacts, setContacts] = useState<ContactResult[] | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [data, setData] = useState<Lists>({ friends: [], incoming: [], outgoing: [], blocked: [] });
 
   const load = useCallback(() => {
@@ -47,6 +50,34 @@ export default function Friends() {
         : 'You can’t send a request to this person.');
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function scanContacts() {
+    setScanning(true);
+    try {
+      const { granted, results } = await findFriendsFromContacts();
+      if (!granted) {
+        Alert.alert('Contacts access is off', 'Turn on Contacts for CHEERS! in Settings to find friends this way.',
+          [{ text: 'Not now', style: 'cancel' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }]);
+        return;
+      }
+      setContacts(results);
+    } catch (e: any) {
+      Alert.alert('Couldn’t check your contacts', e.message);
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function addFromContacts(c: ContactResult) {
+    try {
+      if (c.status === 'incoming') await acceptFriendRequest(c.id);
+      else await sendFriendRequest(c.id);
+      setContacts((cur) => cur?.map((x) => x.id === c.id ? { ...x, status: c.status === 'incoming' ? 'friends' : 'requested' } : x) ?? null);
+      load();
+    } catch (e: any) {
+      Alert.alert('Request didn’t send', e.message);
     }
   }
 
@@ -121,6 +152,32 @@ export default function Friends() {
         <TextInput style={s.input} value={query} onChangeText={setQuery} placeholder="Their username"
           placeholderTextColor={t.muted} autoCapitalize="none" autoCorrect={false} onSubmitEditing={add} returnKeyType="send" />
         <PrimaryButton title="Send friend request" onPress={add} disabled={!query.trim()} loading={searching} />
+
+
+        <Text style={s.label}>Find friends from contacts</Text>
+        <Text style={s.muted}>
+          See which of your contacts are on CHEERS!. Email addresses are scrambled on your phone before checking, and nothing from your contacts is saved.
+        </Text>
+        <SecondaryButton title={contacts ? 'Check contacts again' : 'Find friends from contacts'} onPress={scanContacts} loading={scanning} />
+        {contacts && contacts.length === 0 && (
+          <Text style={s.muted}>None of your contacts are on CHEERS! yet. Invite them with Share to a group chat on the Send tab.</Text>
+        )}
+        {contacts?.map((c) => (
+          <View key={c.id} style={s.row}>
+            <Avatar profile={c} size={40} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.name}>{c.contactName}</Text>
+              <Text style={s.muted}>{c.display_name} · @{c.username}</Text>
+            </View>
+            {c.status === 'friends' ? <Text style={s.muted}>Friends ✓</Text>
+              : c.status === 'requested' ? <Text style={s.muted}>Requested</Text>
+              : (
+                <Pressable onPress={() => addFromContacts(c)} style={[s.smallBtn, { backgroundColor: t.accent, borderColor: t.accent }]}>
+                  <Text style={{ color: t.onAccent, fontWeight: '700' }}>{c.status === 'incoming' ? 'Accept' : 'Add'}</Text>
+                </Pressable>
+              )}
+          </View>
+        ))}
 
         {data.incoming.length > 0 && <Text style={s.label}>Requests for you</Text>}
         {data.incoming.map((p) => (

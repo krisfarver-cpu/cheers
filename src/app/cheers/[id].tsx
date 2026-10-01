@@ -84,6 +84,11 @@ export default function CheersViewer() {
       ]);
   }
 
+  function replyWithPhoto() {
+    if (router.canDismiss()) router.dismissAll();
+    router.navigate({ pathname: '/send', params: { replyTo: c!.id, replyToUser: other.id } });
+  }
+
   async function share() {
     const url = photo(c!.photo_path);
     if (!url) return;
@@ -122,6 +127,9 @@ export default function CheersViewer() {
           {c.location_name ? <View style={s.loc}><Text style={s.locText} numberOfLines={1}>📍 {c.location_name}</Text></View> : null}
         </View>
 
+        {c.reply_to_id ? (
+          <Text style={{ color: t.accent, fontWeight: '700', fontSize: 14 }}>↩︎ A CHEERS! back to yours</Text>
+        ) : null}
         <View style={s.from}>
           <Avatar profile={other} size={44} />
           <View style={{ flex: 1 }}>
@@ -144,6 +152,9 @@ export default function CheersViewer() {
             <PrimaryButton style={{ flex: 1 }} onPress={sendBack} disabled={!!c.cheered_back_at}
               title={c.cheered_back_at ? '🥂 You cheered back' : 'CHEERS! back'} />
           </View>
+        ) : null}
+        {incoming ? (
+          <SecondaryButton title="📸 Send a drink back" onPress={replyWithPhoto} />
         ) : (
           <>
             <Text style={{ color: t.muted, textAlign: 'center', fontSize: 15 }}>

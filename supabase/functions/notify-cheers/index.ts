@@ -14,16 +14,19 @@ Deno.serve(async (req) => {
 
   let toUser: string;
   let fromUser: string;
-  let kind: 'new' | 'back';
+  let kind: 'new' | 'back' | 'reply';
 
   if (type === 'INSERT') {
     toUser = record.recipient_id;
     fromUser = record.sender_id;
-    kind = 'new';
+    kind = record.reply_to_id ? 'reply' : 'new';
   } else if (type === 'UPDATE' && record.cheered_back_at && !old_record?.cheered_back_at) {
     toUser = record.sender_id;
     fromUser = record.recipient_id;
     kind = 'back';
+    // If they answered with a photo, that CHEERS! sends its own alert, so skip this one
+    const { count } = await supabase.from('cheers').select('id', { count: 'exact', head: true }).eq('reply_to_id', record.id);
+    if (count) return new Response('Photo reply already notified');
   } else {
     return new Response('Nothing to send');
   }
@@ -39,7 +42,9 @@ Deno.serve(async (req) => {
     to: token,
     sound: 'default',
     title: 'CHEERS!',
-    body: kind === 'new' ? `${name} sent you a drink 🥂` : `${name} cheered back 🥂`,
+    body: kind === 'new' ? `${name} sent you a drink 🥂`
+      : kind === 'reply' ? `${name} cheered back with a drink 🍻`
+      : `${name} cheered back 🥂`,
     data: { cheersId: record.id, kind },
   }));
 

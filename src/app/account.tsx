@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { deleteAccount, signOut } from '../lib/api';
+import { deleteAccount, getDiscoverable, setDiscoverable, signOut } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '../lib/config';
 import { Theme, useTheme } from '../lib/theme';
@@ -14,6 +14,15 @@ export default function Account() {
   const router = useRouter();
   const { profile } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  const [discoverable, setDisc] = useState(true);
+
+  useEffect(() => { getDiscoverable().then(setDisc).catch(() => {}); }, []);
+
+  async function toggleDiscoverable(on: boolean) {
+    setDisc(on);
+    try { await setDiscoverable(on); }
+    catch (e: any) { setDisc(!on); Alert.alert('That didn’t save', e.message); }
+  }
 
   function confirmDelete() {
     Alert.alert(
@@ -61,6 +70,12 @@ export default function Account() {
             </View>
           </View>
         )}
+
+        <Text style={s.label}>Privacy</Text>
+        <View style={[s.row, { gap: 12 }]}>
+          <Text style={[s.rowText, { flex: 1 }]}>Let people find me from their contacts</Text>
+          <Switch value={discoverable} onValueChange={toggleDiscoverable} trackColor={{ true: t.accent }} />
+        </View>
 
         <Text style={s.label}>Help and legal</Text>
         <Row label="Terms of use" onPress={() => Linking.openURL(TERMS_URL)} />

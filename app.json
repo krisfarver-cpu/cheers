@@ -66,7 +66,13 @@
           "locationWhenInUsePermission": "CHEERS! suggests a place name for your drink. Only the name you choose is shared."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "CHEERS! checks which of your contacts are on CHEERS! so you can add them. Your contacts are never uploaded or saved."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

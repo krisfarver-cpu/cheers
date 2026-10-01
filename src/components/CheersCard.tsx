@@ -5,7 +5,7 @@ import { ago } from '../lib/format';
 import { useTheme } from '../lib/theme';
 
 function statusText(c: Cheers) {
-  if (!c.opened_at) return 'New CHEERS!';
+  if (!c.opened_at) return c.reply_to_id ? 'New CHEERS! back 📸' : 'New CHEERS!';
   const parts = [];
   if (c.liked_at) parts.push('♥ Liked');
   if (c.cheered_back_at) parts.push('🥂 Cheered back');
