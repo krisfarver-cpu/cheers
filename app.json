@@ -90,6 +90,10 @@
     },
     "updates": {
       "url": "https://u.expo.dev/762e1f3e-6f5e-43c9-81c4-018779a3dce7"
-    }
+    },
+    "platforms": [
+      "ios",
+      "android"
+    ]
   }
 }
