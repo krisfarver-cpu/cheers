@@ -121,6 +121,11 @@ export async function acceptFriendRequest(requesterId: string) {
   if (error) throw error;
 }
 
+export async function remindFriendRequest(friendId: string) {
+  const { error } = await supabase.rpc('remind_friend_request', { target: friendId });
+  if (error) throw error;
+}
+
 export async function removeFriend(otherId: string) {
   const me = await myId();
   const { error } = await supabase

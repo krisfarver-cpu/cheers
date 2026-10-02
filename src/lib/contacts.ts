@@ -1,4 +1,4 @@
-import * as Contacts from 'expo-contacts';
+import * as Contacts from 'expo-contacts/legacy';
 import * as Crypto from 'expo-crypto';
 import { ContactMatch, matchContacts } from './api';
 

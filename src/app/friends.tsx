@@ -3,7 +3,7 @@ import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, TextInp
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  acceptFriendRequest, blockUser, findByUsername, listBlocked, listFriends,
+  acceptFriendRequest, blockUser, remindFriendRequest, findByUsername, listBlocked, listFriends,
   Profile, removeFriend, sendFriendRequest, unblockUser,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -79,6 +79,12 @@ export default function Friends() {
     } catch (e: any) {
       Alert.alert('Request didn’t send', e.message);
     }
+  }
+
+  const [reminded, setReminded] = useState<string[]>([]);
+  async function remind(p: Profile) {
+    try { await remindFriendRequest(p.id); setReminded((r) => [...r, p.id]); }
+    catch (e: any) { Alert.alert('Reminder not sent', e.message); }
   }
 
   async function accept(p: Profile) {
@@ -194,7 +200,12 @@ export default function Friends() {
         {data.outgoing.length > 0 && <Text style={s.label}>Waiting on them</Text>}
         {data.outgoing.map((p) => (
           <Row key={p.id} p={p} action={
-            <Pressable onPress={() => confirmRemove(p, true)} style={s.smallBtn}><Text style={s.muted}>Cancel</Text></Pressable>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Pressable onPress={() => remind(p)} disabled={reminded.includes(p.id)} style={s.smallBtn}>
+                <Text style={{ color: t.accent, fontWeight: '700' }}>{reminded.includes(p.id) ? 'Reminded ✓' : 'Remind'}</Text>
+              </Pressable>
+              <Pressable onPress={() => confirmRemove(p, true)} style={s.smallBtn}><Text style={s.muted}>Cancel</Text></Pressable>
+            </View>
           } />
         ))}
 

@@ -43,6 +43,10 @@ Deno.serve(async (req) => {
       toUsers = [record.requester_id];
       body = `${await displayName(record.addressee_id)} accepted your friend request 🍻`;
       data = { kind: 'friend_accepted', userId: record.addressee_id };
+    } else if (type === 'UPDATE' && record.status === 'pending' && record.reminded_at && record.reminded_at !== old_record?.reminded_at) {
+      toUsers = [record.addressee_id];
+      body = `${await displayName(record.requester_id)} is waiting on your friend request 🍻`;
+      data = { kind: 'friend_request', userId: record.requester_id };
     } else return ok('Nothing to send');
   } else if (table === 'group_reactions') {
     if (type !== 'INSERT' || record.kind !== 'cheers') return ok('Nothing to send');
