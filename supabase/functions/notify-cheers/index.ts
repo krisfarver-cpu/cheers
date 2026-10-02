@@ -34,7 +34,17 @@ Deno.serve(async (req) => {
   let body = '';
   let data: Record<string, unknown> = {};
 
-  if (table === 'group_reactions') {
+  if (table === 'friendships') {
+    if (type === 'INSERT' && record.status === 'pending') {
+      toUsers = [record.addressee_id];
+      body = `${await displayName(record.requester_id)} sent you a friend request 🍻`;
+      data = { kind: 'friend_request', userId: record.requester_id };
+    } else if (type === 'UPDATE' && record.status === 'accepted' && old_record?.status !== 'accepted') {
+      toUsers = [record.requester_id];
+      body = `${await displayName(record.addressee_id)} accepted your friend request 🍻`;
+      data = { kind: 'friend_accepted', userId: record.addressee_id };
+    } else return ok('Nothing to send');
+  } else if (table === 'group_reactions') {
     if (type !== 'INSERT' || record.kind !== 'cheers') return ok('Nothing to send');
     const { data: post } = await supabase.from('cheers').select('id, sender_id, group_id').eq('id', record.cheers_id).single();
     if (!post || post.sender_id === record.user_id) return ok('Nothing to send');

@@ -39,7 +39,7 @@ export async function registerForPush(): Promise<string | null> {
   return token;
 }
 
-export type CheersNotice = { cheersId?: string; groupId?: string };
+export type CheersNotice = { cheersId?: string; groupId?: string; kind?: string };
 
 /** Runs handler with the notification's CHEERS! and group ids when someone taps it. Returns an unsubscribe function. */
 export function onCheersNotificationTap(handler: (notice: CheersNotice) => void) {

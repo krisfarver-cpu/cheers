@@ -27,7 +27,8 @@ function RootNavigator() {
 
     // Tapping a CHEERS! notification opens that drink
     const open = (n: CheersNotice) => {
-      if (typeof n.groupId === 'string') router.push(`/group/${n.groupId}`);
+      if (n.kind === 'friend_request' || n.kind === 'friend_accepted') router.push('/friends');
+      else if (typeof n.groupId === 'string') router.push(`/group/${n.groupId}`);
       else if (typeof n.cheersId === 'string') router.push(`/cheers/${n.cheersId}`);
     };
     const off = onCheersNotificationTap(open);
@@ -35,7 +36,7 @@ function RootNavigator() {
     // Same, when the tap launched the app from closed
     Notifications.getLastNotificationResponseAsync().then((r) => {
       const n = r?.notification.request.content.data as CheersNotice | undefined;
-      if (n && (n.groupId || n.cheersId)) {
+      if (n && (n.groupId || n.cheersId || n.kind)) {
         open(n);
         Notifications.clearLastNotificationResponseAsync?.();
       }
