@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
 import { isUsernameAvailable, signIn, signUp } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { Theme, useTheme, WORDMARK_FONT } from '../lib/theme';
@@ -86,6 +87,9 @@ export default function SignIn() {
 
           <PrimaryButton title={signingUp ? 'Create account' : 'Sign in'} onPress={submit} disabled={!ready} loading={busy} style={{ marginTop: 8 }} />
 
+          {!signingUp && (
+            <Link href="/forgot" style={[s.switch, { padding: 8 }]}>Forgot password?</Link>
+          )}
           <Pressable onPress={() => setMode(signingUp ? 'in' : 'up')} style={{ padding: 16 }}>
             <Text style={s.switch}>{signingUp ? 'Already have an account? Sign in' : 'New here? Create an account'}</Text>
           </Pressable>
