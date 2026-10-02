@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { blockUser, getGroup, getGroupFeed, Group, GroupPost, setGroupReaction, subscribeToGroup } from '../../lib/api';
+import { blockUser, getGroup, getGroupFeed, Group, GroupPost, markGroupRead, setGroupReaction, subscribeToGroup } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { ago } from '../../lib/format';
 import { usePhotoUrls } from '../../lib/usePhotoUrls';
@@ -29,6 +29,7 @@ export default function GroupThread() {
     try {
       const [g, feed] = await Promise.all([getGroup(id), getGroupFeed(id)]);
       setGroup(g); setPosts(feed);
+      markGroupRead(id).catch(() => {});
     } catch (e: any) {
       Alert.alert('Couldn’t open this group', e.message);
     } finally {

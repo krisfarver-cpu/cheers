@@ -323,6 +323,8 @@ export type Group = {
   created_at: string;
   members: Profile[];
   lastAt: string | null;
+  /** Drinks posted by others since you last opened the group */
+  unread: number;
 };
 
 export type GroupReaction = { user_id: string; kind: 'like' | 'cheers' };
@@ -331,12 +333,13 @@ export type GroupPost = Cheers & { sender?: Profile; group_reactions: GroupReact
 const GROUP_FIELDS = `id, name, created_by, created_at,
   group_members(profile:profiles!group_members_user_id_fkey(${PROFILE_FIELDS}))`;
 
-function toGroup(row: any, lastAt: string | null = null): Group {
+function toGroup(row: any, lastAt: string | null = null, unread = 0): Group {
   return {
     id: row.id, name: row.name, created_by: row.created_by, created_at: row.created_at,
     members: (row.group_members ?? []).map((m: any) => m.profile).filter(Boolean)
       .sort((a: Profile, b: Profile) => a.display_name.localeCompare(b.display_name)),
     lastAt,
+    unread,
   };
 }
 
@@ -345,14 +348,45 @@ export async function listGroups(): Promise<Group[]> {
   const { data, error } = await supabase.from('groups').select(GROUP_FIELDS);
   if (error) throw error;
   if (!data.length) return [];
-  const { data: recent } = await supabase
-    .from('cheers').select('group_id, created_at')
-    .in('group_id', data.map((g: any) => g.id))
-    .order('created_at', { ascending: false }).limit(500);
+  const me = await myId();
+  const ids = data.map((g: any) => g.id);
+  const [{ data: recent }, { data: mine }] = await Promise.all([
+    supabase.from('cheers').select('group_id, created_at, sender_id')
+      .in('group_id', ids).order('created_at', { ascending: false }).limit(500),
+    supabase.from('group_members').select('group_id, last_read_at').eq('user_id', me).in('group_id', ids),
+  ]);
+  const readAt = new Map<string, string>((mine ?? []).map((m: any) => [m.group_id, m.last_read_at]));
   const last = new Map<string, string>();
-  for (const r of recent ?? []) if (r.group_id && !last.has(r.group_id)) last.set(r.group_id, r.created_at);
-  return data.map((g: any) => toGroup(g, last.get(g.id) ?? null))
+  const unread = new Map<string, number>();
+  for (const r of recent ?? []) {
+    if (!r.group_id) continue;
+    if (!last.has(r.group_id)) last.set(r.group_id, r.created_at);
+    const seen = readAt.get(r.group_id);
+    if (r.sender_id !== me && (!seen || r.created_at > seen)) unread.set(r.group_id, (unread.get(r.group_id) ?? 0) + 1);
+  }
+  return data.map((g: any) => toGroup(g, last.get(g.id) ?? null, unread.get(g.id) ?? 0))
     .sort((a, b) => (b.lastAt ?? b.created_at).localeCompare(a.lastAt ?? a.created_at));
+}
+
+// Lets the tab bar badge refresh when you open a group or groups change
+const groupListeners = new Set<() => void>();
+export function onGroupsChanged(fn: () => void) {
+  groupListeners.add(fn);
+  return () => { groupListeners.delete(fn); };
+}
+export function notifyGroupsChanged() { groupListeners.forEach((fn) => fn()); }
+
+/** Marks everything in a group as seen. */
+export async function markGroupRead(groupId: string) {
+  const { error } = await supabase.from('group_members')
+    .update({ last_read_at: new Date().toISOString() })
+    .eq('group_id', groupId).eq('user_id', await myId());
+  if (!error) notifyGroupsChanged();
+}
+
+/** How many of your groups have something new. */
+export async function countUnreadGroups(): Promise<number> {
+  try { return (await listGroups()).filter((g) => g.unread > 0).length; } catch { return 0; }
 }
 
 export async function getGroup(id: string): Promise<Group> {

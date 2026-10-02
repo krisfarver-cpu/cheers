@@ -55,12 +55,19 @@ export default function History() {
                   <Text style={{ fontSize: 20 }}>🍻</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: t.ink, fontWeight: '700', fontSize: 16 }} numberOfLines={1}>{g.name}</Text>
+                  <Text style={{ color: t.ink, fontWeight: g.unread ? '800' : '700', fontSize: 16 }} numberOfLines={1}>{g.name}</Text>
                   <Text style={{ color: t.muted, fontSize: 14 }} numberOfLines={1}>
                     {g.members.length} {g.members.length === 1 ? 'member' : 'members'}{g.lastAt ? ` · last CHEERS! ${ago(g.lastAt)}` : ''}
                   </Text>
                 </View>
-                <Text style={{ color: t.muted, fontSize: 18 }}>›</Text>
+                {g.unread > 0 ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityLabel={`${g.unread} new`}>
+                    <Text style={{ color: t.accent, fontWeight: '800', fontSize: 13 }}>{g.unread > 9 ? '9+' : g.unread} new</Text>
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.accent }} />
+                  </View>
+                ) : (
+                  <Text style={{ color: t.muted, fontSize: 18 }}>›</Text>
+                )}
               </Pressable>
             ))}
             <Text style={{ color: t.ink, fontSize: 24, fontWeight: '800', marginTop: 16 }}>Friends</Text>
