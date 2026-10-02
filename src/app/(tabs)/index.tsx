@@ -6,6 +6,7 @@ import { Cheers, getReceived, subscribeToCheers } from '../../lib/api';
 import { usePhotoUrls } from '../../lib/usePhotoUrls';
 import { useTheme } from '../../lib/theme';
 import { FriendsButton, Header } from '../../components/Header';
+import { FeaturedCard } from '../../components/FeaturedCard';
 import { CheersCard } from '../../components/CheersCard';
 import { ReceivedTile } from '../../components/ReceivedTile';
 import { IB_GRID } from '../../lib/brand';
@@ -50,7 +51,7 @@ export default function Received() {
         data={items}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: 20, gap: 12, flexGrow: 1 }}
-        ListHeaderComponent={<Text style={{ color: t.ink, fontSize: 24, fontWeight: '800', marginBottom: 4 }}>Received</Text>}
+        ListHeaderComponent={<View><Text style={{ color: t.ink, fontSize: 24, fontWeight: '800', marginBottom: 4 }}>Received</Text><FeaturedCard /></View>}
         renderItem={({ item }) => IB_GRID ? (
           <ReceivedTile cheers={item} photoUrl={photo(item.photo_path)} onPress={() => router.push(`/cheers/${item.id}`)} />
         ) : (

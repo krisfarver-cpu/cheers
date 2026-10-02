@@ -11,6 +11,7 @@ import { inviteMessage, shareCheersPhoto } from '../../lib/share';
 import { Theme, useTheme } from '../../lib/theme';
 import { Header } from '../../components/Header';
 import { DRINK_CATEGORIES, IS_IB } from '../../lib/brand';
+import { PartnerBrand, searchBrands } from '../../lib/partner';
 import { Chip, PrimaryButton, SecondaryButton } from '../../components/Buttons';
 import { Avatar } from '../../components/Avatar';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
@@ -38,6 +39,17 @@ export default function Send() {
   const [location, setLocation] = useState('');
   const [drinkCategory, setDrinkCategory] = useState<string | null>(null);
   const [drinkBrand, setDrinkBrand] = useState('');
+  const [brandHits, setBrandHits] = useState<PartnerBrand[]>([]);
+  useEffect(() => {
+    if (!IS_IB) return;
+    const timer = setTimeout(() => { searchBrands(drinkBrand).then(setBrandHits).catch(() => setBrandHits([])); }, 250);
+    return () => clearTimeout(timer);
+  }, [drinkBrand]);
+  function pickBrand(b: PartnerBrand) {
+    setDrinkBrand(b.name);
+    if (b.category && DRINK_CATEGORIES.includes(b.category)) setDrinkCategory(b.category);
+    setBrandHits([]);
+  }
   const [locating, setLocating] = useState(false);
   const [friends, setFriends] = useState<Profile[]>([]);
   const [to, setTo] = useState<string[]>([]);
@@ -190,6 +202,13 @@ export default function Send() {
             </View>
             <TextInput style={s.input} value={drinkBrand} onChangeText={setDrinkBrand} placeholder="Brand (optional)"
               placeholderTextColor={t.muted} maxLength={60} />
+            {brandHits.filter((b) => b.name !== drinkBrand).length > 0 && (
+              <View style={s.row}>
+                {brandHits.filter((b) => b.name !== drinkBrand).map((b) => (
+                  <Chip key={b.id} label={b.name} selected={false} onPress={() => pickBrand(b)} />
+                ))}
+              </View>
+            )}
           </>
         )}
 

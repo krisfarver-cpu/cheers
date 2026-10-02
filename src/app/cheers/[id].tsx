@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -10,6 +10,7 @@ import { usePhotoUrls } from '../../lib/usePhotoUrls';
 import { Theme, useTheme } from '../../lib/theme';
 import { Avatar } from '../../components/Avatar';
 import { BRAND } from '../../lib/brand';
+import { findItUrl } from '../../lib/partner';
 import { PrimaryButton, SecondaryButton } from '../../components/Buttons';
 import { inviteMessage, shareCheersPhoto } from '../../lib/share';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
@@ -23,6 +24,7 @@ export default function CheersViewer() {
   const [c, setC] = useState<Cheers | null>(null);
   const [clink, setClink] = useState(0);
   const [sharing, setSharing] = useState(false);
+  const [findIt, setFindIt] = useState<string | null>(null);
   const photo = usePhotoUrls(c ? [c.photo_path] : []);
 
   useEffect(() => {
@@ -33,6 +35,10 @@ export default function CheersViewer() {
       })
       .catch((e) => Alert.alert('Couldn’t open this CHEERS!', e.message));
   }, [id]);
+
+  useEffect(() => {
+    if (c?.drink_brand || c?.drink_category) findItUrl(c.drink_brand).then(setFindIt).catch(() => {});
+  }, [c?.drink_brand, c?.drink_category]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -149,6 +155,11 @@ export default function CheersViewer() {
               <Text style={{ color: t.ink, fontWeight: '700', fontSize: 15 }}>{[c.drink_brand, c.drink_category].filter(Boolean).join(' · ')}</Text>
               {BRAND && <Text style={{ color: t.muted, fontSize: 12 }}>{BRAND.distributedBy}</Text>}
             </View>
+            {findIt ? (
+              <Pressable onPress={() => Linking.openURL(findIt)} hitSlop={8} accessibilityLabel="Find it near you">
+                <Text style={{ color: t.secondary, fontWeight: '700', fontSize: 14 }}>Find it ›</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
         {incoming ? (
