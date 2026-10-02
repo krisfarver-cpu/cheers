@@ -16,3 +16,4 @@ export const BRAND = IS_IB
 
 /** Drink categories offered on the Send screen in partner apps. */
 export const DRINK_CATEGORIES = ['Light Lager', 'IPA', 'Seltzer', 'Non-alc', 'Local craft', 'Import', 'Other'];
+export const IB_GRID = false; // true = Option B photo grid on Received

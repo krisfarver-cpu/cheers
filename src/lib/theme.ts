@@ -16,10 +16,10 @@ const dark: typeof light = {
 
 // Indiana Beverage, Option B: white screens, red header bands, blue tab bar
 const indianaBev: typeof light = {
-  bg: '#FFFFFF', surface: '#F1F4F9', ink: '#0B2347', muted: '#4A5B74',
-  accent: '#DA2128', onAccent: '#FFFFFF', amber: '#F7B32B', line: '#D7DFEA',
-  secondary: '#0055A5', band: '#DA2128', onBand: '#FFFFFF',
-  tabBg: '#0055A5', tabFg: '#FFFFFF', tabFgInactive: '#C9DAEE',
+  bg: '#0B2347', surface: 'rgba(255,255,255,0.07)', ink: '#F4F6FA', muted: '#B4C3D8',
+  accent: '#DA2128', onAccent: '#FFFFFF', amber: '#F7B32B', line: 'rgba(255,255,255,0.16)',
+  secondary: '#6FB1F0', band: null, onBand: '#FFFFFF',
+  tabBg: '#081B38', tabFg: '#FFFFFF', tabFgInactive: '#B4C3D8',
 };
 
 export type Theme = typeof light;

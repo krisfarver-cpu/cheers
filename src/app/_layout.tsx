@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, Shrikhand_400Regular } from '@expo-google-fonts/shrikhand';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { CheersNotice, onCheersNotificationTap, registerForPush } from '../lib/push';
+import { IS_IB } from '../lib/brand';
 import { useTheme } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -48,7 +49,7 @@ function RootNavigator() {
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style={IS_IB ? 'light' : 'auto'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="(tabs)" />
