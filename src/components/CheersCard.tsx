@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import type { Cheers } from '../lib/api';
 import { ago } from '../lib/format';
 import { useTheme } from '../lib/theme';
+import { DrinkTag } from './DrinkTag';
 
 function statusText(c: Cheers) {
   if (!c.opened_at) return c.reply_to_id ? 'New CHEERS! back 📸' : 'New CHEERS!';
@@ -30,6 +31,7 @@ export function CheersCard({ cheers, photoUrl, onPress }: { cheers: Cheers; phot
           <Text style={{ color: t.muted, fontSize: 13 }}>{ago(cheers.created_at)}</Text>
         </View>
         {cheers.location_name ? <Text numberOfLines={1} style={{ color: t.ink, fontSize: 14 }}>📍 {cheers.location_name}</Text> : null}
+        <DrinkTag category={cheers.drink_category} brand={cheers.drink_brand} />
         <Text style={{ color: unread ? t.accent : t.muted, fontSize: 13, fontWeight: unread ? '700' : '400' }}>{statusText(cheers)}</Text>
       </View>
     </Pressable>

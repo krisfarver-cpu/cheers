@@ -8,6 +8,7 @@ import { ago } from '../../lib/format';
 import { usePhotoUrls } from '../../lib/usePhotoUrls';
 import { Theme, useTheme } from '../../lib/theme';
 import { Avatar } from '../../components/Avatar';
+import { DrinkTag } from '../../components/DrinkTag';
 import { PrimaryButton } from '../../components/Buttons';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
 
@@ -123,6 +124,7 @@ export default function GroupThread() {
               </View>
               <View style={s.photo}>
                 <Image source={photo(p.photo_path)} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+                <View style={{ position: 'absolute', top: 10, left: 10, right: 10 }}><DrinkTag category={p.drink_category} brand={p.drink_brand} onPhoto /></View>
                 {p.location_name ? <View style={s.loc}><Text style={s.locText} numberOfLines={1}>📍 {p.location_name}</Text></View> : null}
               </View>
               <View style={s.actions}>

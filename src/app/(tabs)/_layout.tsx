@@ -33,9 +33,9 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{
       headerShown: false,
-      tabBarActiveTintColor: t.ink,
-      tabBarInactiveTintColor: t.muted,
-      tabBarStyle: { backgroundColor: t.surface, borderTopColor: t.line },
+      tabBarActiveTintColor: t.tabFg,
+      tabBarInactiveTintColor: t.tabFgInactive,
+      tabBarStyle: { backgroundColor: t.tabBg, borderTopColor: t.line },
       tabBarLabelStyle: { fontWeight: '600' },
       sceneStyle: { backgroundColor: t.bg },
     }}>
@@ -43,7 +43,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="send" options={{
         title: 'Send',
         tabBarIcon: () => (
-          <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', marginTop: -20 }}>
+          <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', marginTop: -20, borderWidth: t.band ? 3 : 0, borderColor: '#FFFFFF' }}>
             <Text style={{ fontSize: 24 }}>📸</Text>
           </View>
         ),
@@ -52,7 +52,7 @@ export default function TabsLayout() {
         title: 'History',
         tabBarIcon: icon('📖'),
         tabBarBadge: unreadGroups > 0 ? unreadGroups : undefined,
-        tabBarBadgeStyle: { backgroundColor: t.accent, color: t.onAccent, fontWeight: '700' },
+        tabBarBadgeStyle: { backgroundColor: t.band ? '#FFFFFF' : t.accent, color: t.band ? t.accent : t.onAccent, fontWeight: '700' },
       }} />
     </Tabs>
   );

@@ -9,6 +9,7 @@ import { fullDate } from '../../lib/format';
 import { usePhotoUrls } from '../../lib/usePhotoUrls';
 import { Theme, useTheme } from '../../lib/theme';
 import { Avatar } from '../../components/Avatar';
+import { BRAND } from '../../lib/brand';
 import { PrimaryButton, SecondaryButton } from '../../components/Buttons';
 import { inviteMessage, shareCheersPhoto } from '../../lib/share';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
@@ -141,6 +142,15 @@ export default function CheersViewer() {
           </View>
         </View>
 
+        {(c.drink_category || c.drink_brand) ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }}>
+            <Text style={{ fontSize: 26 }}>🍺</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.ink, fontWeight: '700', fontSize: 15 }}>{[c.drink_brand, c.drink_category].filter(Boolean).join(' · ')}</Text>
+              {BRAND && <Text style={{ color: t.muted, fontSize: 12 }}>{BRAND.distributedBy}</Text>}
+            </View>
+          </View>
+        ) : null}
         {incoming ? (
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Pressable onPress={toggleLike} accessibilityRole="button" accessibilityState={{ selected: !!c.liked_at }}

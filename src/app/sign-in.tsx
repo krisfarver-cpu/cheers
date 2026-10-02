@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { isUsernameAvailable, signIn, signUp } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { Theme, useTheme, WORDMARK_FONT } from '../lib/theme';
 import { PrimaryButton } from '../components/Buttons';
 import { TERMS_URL } from '../lib/config';
+import { BRAND } from '../lib/brand';
 
 const USERNAME_RULE = /^[a-z0-9_]{3,20}$/;
 
@@ -53,8 +54,9 @@ export default function SignIn() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
+          {BRAND && <Image source={BRAND.logo} accessibilityLabel={BRAND.partnerName} style={{ width: 170, height: 104, alignSelf: 'center' }} resizeMode="contain" />}
           <Text style={s.wordmark}>CHEERS!</Text>
-          <Text style={s.tag}>Share a drink with friends, wherever you are.</Text>
+          <Text style={s.tag}>{BRAND ? BRAND.tagline : 'Share a drink with friends, wherever you are.'}</Text>
 
           <TextInput style={s.input} placeholder="Email" placeholderTextColor={t.muted} value={email} onChangeText={setEmail}
             autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
@@ -87,6 +89,7 @@ export default function SignIn() {
           <Pressable onPress={() => setMode(signingUp ? 'in' : 'up')} style={{ padding: 16 }}>
             <Text style={s.switch}>{signingUp ? 'Already have an account? Sign in' : 'New here? Create an account'}</Text>
           </Pressable>
+          {BRAND && <Text style={[s.tag, { fontSize: 12, marginTop: 8 }]}>{BRAND.footer} Please drink responsibly.</Text>}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

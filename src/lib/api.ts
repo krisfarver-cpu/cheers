@@ -24,6 +24,8 @@ export type Cheers = {
   liked_at: string | null;
   cheered_back_at: string | null;
   reply_to_id?: string | null;
+  drink_category?: string | null;
+  drink_brand?: string | null;
   sender?: Profile;
   recipient?: Profile;
 };
@@ -182,6 +184,9 @@ export async function sendCheers(opts: {
   photoUri: string;
   mimeType?: string | null;
   locationName?: string;
+  /** "What are you drinking?" (partner apps) */
+  drinkCategory?: string | null;
+  drinkBrand?: string | null;
   recipientIds: string[];
   groupIds?: string[];
   /** When sending a drink back: the CHEERS! being answered, and who sent it */
@@ -199,15 +204,19 @@ export async function sendCheers(opts: {
   await uploadPhoto(path, opts.photoUri, contentType);
 
   const location = opts.locationName?.trim() || null;
+  const drink = {
+    ...(opts.drinkCategory ? { drink_category: opts.drinkCategory } : {}),
+    ...(opts.drinkBrand?.trim() ? { drink_brand: opts.drinkBrand.trim().slice(0, 60) } : {}),
+  };
   const { data, error } = await supabase
     .from('cheers')
     .insert([
       ...opts.recipientIds.map((recipient_id) => ({
-        recipient_id, photo_path: path, location_name: location,
+        recipient_id, photo_path: path, location_name: location, ...drink,
         reply_to_id: opts.replyTo && opts.replyTo.toUserId === recipient_id ? opts.replyTo.id : null,
       })),
       ...groupIds.map((group_id) => ({
-        group_id, photo_path: path, location_name: location,
+        group_id, photo_path: path, location_name: location, ...drink,
         reply_to_id: opts.groupReplyTo && opts.groupReplyTo.groupId === group_id ? opts.groupReplyTo.id : null,
       })),
     ])

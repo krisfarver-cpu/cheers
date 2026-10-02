@@ -10,6 +10,7 @@ import { useAuth } from '../../lib/auth';
 import { inviteMessage, shareCheersPhoto } from '../../lib/share';
 import { Theme, useTheme } from '../../lib/theme';
 import { Header } from '../../components/Header';
+import { DRINK_CATEGORIES, IS_IB } from '../../lib/brand';
 import { Chip, PrimaryButton, SecondaryButton } from '../../components/Buttons';
 import { Avatar } from '../../components/Avatar';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
@@ -35,6 +36,8 @@ export default function Send() {
     useLocalSearchParams<{ replyTo?: string; replyToUser?: string; replyToGroup?: string; toGroup?: string }>();
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [location, setLocation] = useState('');
+  const [drinkCategory, setDrinkCategory] = useState<string | null>(null);
+  const [drinkBrand, setDrinkBrand] = useState('');
   const [locating, setLocating] = useState(false);
   const [friends, setFriends] = useState<Profile[]>([]);
   const [to, setTo] = useState<string[]>([]);
@@ -114,6 +117,7 @@ export default function Send() {
       const isGroupReply = !!(replyTo && replyToGroup && toGroups.includes(replyToGroup));
       await sendCheers({
         photoUri: photo.uri, mimeType: photo.mimeType, locationName: location, recipientIds: to, groupIds: toGroups,
+        drinkCategory, drinkBrand,
         replyTo: isReply ? { id: replyTo!, toUserId: replyToUser! } : undefined,
         groupReplyTo: isGroupReply ? { id: replyTo!, groupId: replyToGroup! } : undefined,
       });
@@ -122,7 +126,7 @@ export default function Send() {
       setLastSent({ uri: photo.uri, location });
       setClink((n) => n + 1);
       setSentNote(`CHEERS! sent to ${names.length > 2 ? `${names.length} friends` : names.join(' and ')}`);
-      setPhoto(null); setLocation(''); setTo([]); setToGroups([]);
+      setPhoto(null); setLocation(''); setTo([]); setToGroups([]); setDrinkCategory(null); setDrinkBrand('');
     } catch (e: any) {
       Alert.alert('Your CHEERS! didn’t send', e.message);
     } finally {
@@ -175,6 +179,19 @@ export default function Send() {
           <Chip label="📷 Take photo" onPress={() => pick('camera')} />
           <Chip label="🖼️ Choose from library" onPress={() => pick('library')} />
         </View>
+
+        {IS_IB && (
+          <>
+            <Text style={s.label}>What are you drinking?</Text>
+            <View style={s.row}>
+              {DRINK_CATEGORIES.map((c) => (
+                <Chip key={c} label={c} selected={drinkCategory === c} onPress={() => setDrinkCategory(drinkCategory === c ? null : c)} />
+              ))}
+            </View>
+            <TextInput style={s.input} value={drinkBrand} onChangeText={setDrinkBrand} placeholder="Brand (optional)"
+              placeholderTextColor={t.muted} maxLength={60} />
+          </>
+        )}
 
         <Text style={s.label}>Where are you?</Text>
         <TextInput style={s.input} value={location} onChangeText={setLocation} placeholder="Add a place (optional)"

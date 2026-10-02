@@ -1,16 +1,33 @@
 import { useColorScheme } from 'react-native';
+import { IS_IB } from './brand';
 
 const light = {
   bg: '#E7F2E2', surface: '#F6FBF3', ink: '#0E1A12', muted: '#4A6147',
   accent: '#3F9B74', onAccent: '#FFFFFF', amber: '#F7B32B', line: '#CFE2C8',
+  secondary: '#3F9B74', band: null as string | null, onBand: '#FFFFFF',
+  tabBg: '#F6FBF3', tabFg: '#0E1A12', tabFgInactive: '#4A6147',
 };
 const dark: typeof light = {
   bg: '#0F1A13', surface: '#1A2A1F', ink: '#E7F2E2', muted: '#A7C3A3',
   accent: '#5CC097', onAccent: '#0F1A13', amber: '#F7B32B', line: '#2A3F30',
+  secondary: '#5CC097', band: null, onBand: '#FFFFFF',
+  tabBg: '#1A2A1F', tabFg: '#E7F2E2', tabFgInactive: '#A7C3A3',
+};
+
+// Indiana Beverage, Option B: white screens, red header bands, blue tab bar
+const indianaBev: typeof light = {
+  bg: '#FFFFFF', surface: '#F1F4F9', ink: '#0B2347', muted: '#4A5B74',
+  accent: '#DA2128', onAccent: '#FFFFFF', amber: '#F7B32B', line: '#D7DFEA',
+  secondary: '#0055A5', band: '#DA2128', onBand: '#FFFFFF',
+  tabBg: '#0055A5', tabFg: '#FFFFFF', tabFgInactive: '#C9DAEE',
 };
 
 export type Theme = typeof light;
-export const useTheme = (): Theme => (useColorScheme() === 'dark' ? dark : light);
+export const useTheme = (): Theme => {
+  const scheme = useColorScheme();
+  if (IS_IB) return indianaBev;
+  return scheme === 'dark' ? dark : light;
+};
 
 export const WORDMARK_FONT = 'Shrikhand_400Regular';
 

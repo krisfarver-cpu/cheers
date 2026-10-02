@@ -16,9 +16,18 @@
     "production": {
       "autoIncrement": true,
       "channel": "production"
+    },
+    "indianabev": {
+      "extends": "production",
+      "environment": "production",
+      "channel": "indianabev",
+      "env": {
+        "APP_VARIANT": "indianabev"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "indianabev": {}
   }
 }

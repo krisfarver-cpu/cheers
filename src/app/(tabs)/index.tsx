@@ -7,6 +7,8 @@ import { usePhotoUrls } from '../../lib/usePhotoUrls';
 import { useTheme } from '../../lib/theme';
 import { FriendsButton, Header } from '../../components/Header';
 import { CheersCard } from '../../components/CheersCard';
+import { ReceivedTile } from '../../components/ReceivedTile';
+import { IS_IB } from '../../lib/brand';
 import { PrimaryButton } from '../../components/Buttons';
 
 export default function Received() {
@@ -42,11 +44,16 @@ export default function Received() {
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: t.bg }}>
       <Header right={<FriendsButton onPress={() => router.push('/friends')} />} />
       <FlatList
+        key={IS_IB ? 'grid' : 'list'}
+        numColumns={IS_IB ? 2 : 1}
+        columnWrapperStyle={IS_IB ? { justifyContent: 'space-between' } : undefined}
         data={items}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: 20, gap: 12, flexGrow: 1 }}
         ListHeaderComponent={<Text style={{ color: t.ink, fontSize: 24, fontWeight: '800', marginBottom: 4 }}>Received</Text>}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => IS_IB ? (
+          <ReceivedTile cheers={item} photoUrl={photo(item.photo_path)} onPress={() => router.push(`/cheers/${item.id}`)} />
+        ) : (
           <CheersCard cheers={item} photoUrl={photo(item.photo_path)} onPress={() => router.push(`/cheers/${item.id}`)} />
         )}
         ListEmptyComponent={loading ? <ActivityIndicator style={{ marginTop: 40 }} /> : (
