@@ -39,11 +39,12 @@ export async function registerForPush(): Promise<string | null> {
   return token;
 }
 
-/** Runs handler with the CHEERS! id when someone taps a notification. Returns an unsubscribe function. */
-export function onCheersNotificationTap(handler: (cheersId: string) => void) {
+export type CheersNotice = { cheersId?: string; groupId?: string };
+
+/** Runs handler with the notification's CHEERS! and group ids when someone taps it. Returns an unsubscribe function. */
+export function onCheersNotificationTap(handler: (notice: CheersNotice) => void) {
   const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-    const id = response.notification.request.content.data?.cheersId;
-    if (typeof id === 'string') handler(id);
+    handler((response.notification.request.content.data ?? {}) as CheersNotice);
   });
   return () => sub.remove();
 }

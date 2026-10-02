@@ -15,7 +15,8 @@ export type Profile = {
 export type Cheers = {
   id: string;
   sender_id: string;
-  recipient_id: string;
+  recipient_id: string | null;
+  group_id?: string | null;
   photo_path: string;
   location_name: string | null;
   created_at: string;
@@ -182,10 +183,14 @@ export async function sendCheers(opts: {
   mimeType?: string | null;
   locationName?: string;
   recipientIds: string[];
+  groupIds?: string[];
   /** When sending a drink back: the CHEERS! being answered, and who sent it */
   replyTo?: { id: string; toUserId: string };
+  /** When sending a drink back inside a group */
+  groupReplyTo?: { id: string; groupId: string };
 }): Promise<Cheers[]> {
-  if (!opts.recipientIds.length) throw new Error('Pick at least one friend');
+  const groupIds = opts.groupIds ?? [];
+  if (!opts.recipientIds.length && !groupIds.length) throw new Error('Pick at least one friend or group');
   const me = await myId();
   const contentType = opts.mimeType ?? 'image/jpeg';
   const ext = contentType.split('/')[1] ?? 'jpg';
@@ -196,10 +201,16 @@ export async function sendCheers(opts: {
   const location = opts.locationName?.trim() || null;
   const { data, error } = await supabase
     .from('cheers')
-    .insert(opts.recipientIds.map((recipient_id) => ({
-      recipient_id, photo_path: path, location_name: location,
-      reply_to_id: opts.replyTo && opts.replyTo.toUserId === recipient_id ? opts.replyTo.id : null,
-    })))
+    .insert([
+      ...opts.recipientIds.map((recipient_id) => ({
+        recipient_id, photo_path: path, location_name: location,
+        reply_to_id: opts.replyTo && opts.replyTo.toUserId === recipient_id ? opts.replyTo.id : null,
+      })),
+      ...groupIds.map((group_id) => ({
+        group_id, photo_path: path, location_name: location,
+        reply_to_id: opts.groupReplyTo && opts.groupReplyTo.groupId === group_id ? opts.groupReplyTo.id : null,
+      })),
+    ])
     .select();
   if (error) throw error;
   return data;
@@ -246,7 +257,7 @@ export async function getHistorySummary(): Promise<FriendSummary[]> {
   const me = await myId();
   const [{ friends }, { data, error }] = await Promise.all([
     listFriends(),
-    supabase.from('cheers').select('sender_id, recipient_id, created_at, cheered_back_at'),
+    supabase.from('cheers').select('sender_id, recipient_id, created_at, cheered_back_at').is('group_id', null),
   ]);
   if (error) throw error;
 
@@ -301,6 +312,111 @@ export async function cheersBack(id: string) {
     .eq('id', id)
     .is('cheered_back_at', null);
   if (error) throw error;
+}
+
+/* ---------------- Groups ---------------- */
+
+export type Group = {
+  id: string;
+  name: string;
+  created_by: string | null;
+  created_at: string;
+  members: Profile[];
+  lastAt: string | null;
+};
+
+export type GroupReaction = { user_id: string; kind: 'like' | 'cheers' };
+export type GroupPost = Cheers & { sender?: Profile; group_reactions: GroupReaction[] };
+
+const GROUP_FIELDS = `id, name, created_by, created_at,
+  group_members(profile:profiles!group_members_user_id_fkey(${PROFILE_FIELDS}))`;
+
+function toGroup(row: any, lastAt: string | null = null): Group {
+  return {
+    id: row.id, name: row.name, created_by: row.created_by, created_at: row.created_at,
+    members: (row.group_members ?? []).map((m: any) => m.profile).filter(Boolean)
+      .sort((a: Profile, b: Profile) => a.display_name.localeCompare(b.display_name)),
+    lastAt,
+  };
+}
+
+/** Your groups, most recently active first. */
+export async function listGroups(): Promise<Group[]> {
+  const { data, error } = await supabase.from('groups').select(GROUP_FIELDS);
+  if (error) throw error;
+  if (!data.length) return [];
+  const { data: recent } = await supabase
+    .from('cheers').select('group_id, created_at')
+    .in('group_id', data.map((g: any) => g.id))
+    .order('created_at', { ascending: false }).limit(500);
+  const last = new Map<string, string>();
+  for (const r of recent ?? []) if (r.group_id && !last.has(r.group_id)) last.set(r.group_id, r.created_at);
+  return data.map((g: any) => toGroup(g, last.get(g.id) ?? null))
+    .sort((a, b) => (b.lastAt ?? b.created_at).localeCompare(a.lastAt ?? a.created_at));
+}
+
+export async function getGroup(id: string): Promise<Group> {
+  const { data, error } = await supabase.from('groups').select(GROUP_FIELDS).eq('id', id).single();
+  if (error) throw error;
+  return toGroup(data);
+}
+
+export async function createGroup(name: string, memberIds: string[]): Promise<string> {
+  const { data, error } = await supabase.rpc('create_group', { group_name: name.trim(), member_ids: memberIds });
+  if (error) throw error;
+  return data as string;
+}
+
+export async function renameGroup(id: string, name: string) {
+  const { error } = await supabase.from('groups').update({ name: name.trim() }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function addGroupMembers(groupId: string, userIds: string[]) {
+  if (!userIds.length) return;
+  const me = await myId();
+  const { error } = await supabase.from('group_members')
+    .insert(userIds.map((user_id) => ({ group_id: groupId, user_id, added_by: me })));
+  if (error) throw error;
+}
+
+export async function removeGroupMember(groupId: string, userId: string) {
+  const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function leaveGroup(groupId: string) {
+  await removeGroupMember(groupId, await myId());
+}
+
+/** Everything posted in a group, newest first. */
+export async function getGroupFeed(groupId: string): Promise<GroupPost[]> {
+  const { data, error } = await supabase
+    .from('cheers')
+    .select(`*, sender:profiles!cheers_sender_id_fkey(${PROFILE_FIELDS}), group_reactions(user_id, kind)`)
+    .eq('group_id', groupId)
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return data as GroupPost[];
+}
+
+export async function setGroupReaction(cheersId: string, kind: 'like' | 'cheers', on: boolean) {
+  const me = await myId();
+  const { error } = on
+    ? await supabase.from('group_reactions').insert({ cheers_id: cheersId, user_id: me, kind })
+    : await supabase.from('group_reactions').delete().eq('cheers_id', cheersId).eq('user_id', me).eq('kind', kind);
+  if (error && error.code !== '23505') throw error; // already reacted is fine
+}
+
+/** Refreshes when someone posts or reacts in the group. Returns a function that stops listening. */
+export function subscribeToGroup(groupId: string, onChange: () => void) {
+  const channel = supabase
+    .channel(`group-${groupId}-${Math.random().toString(36).slice(2, 6)}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'cheers', filter: `group_id=eq.${groupId}` }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'group_reactions' }, onChange)
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
 }
 
 /* ---------------- Find friends from contacts ---------------- */

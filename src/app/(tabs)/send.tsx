@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { cheersBack, listFriends, Profile, sendCheers } from '../../lib/api';
+import { cheersBack, Group, listFriends, listGroups, Profile, sendCheers } from '../../lib/api';
 import { suggestPlaceName } from '../../lib/location';
 import { useAuth } from '../../lib/auth';
 import { inviteMessage, shareCheersPhoto } from '../../lib/share';
@@ -31,12 +31,15 @@ export default function Send() {
   const router = useRouter();
   const { profile } = useAuth();
   // Set when someone taps "Send a drink back" on a CHEERS! they received
-  const { replyTo, replyToUser } = useLocalSearchParams<{ replyTo?: string; replyToUser?: string }>();
+  const { replyTo, replyToUser, replyToGroup, toGroup } =
+    useLocalSearchParams<{ replyTo?: string; replyToUser?: string; replyToGroup?: string; toGroup?: string }>();
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [location, setLocation] = useState('');
   const [locating, setLocating] = useState(false);
   const [friends, setFriends] = useState<Profile[]>([]);
   const [to, setTo] = useState<string[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [toGroups, setToGroups] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [clink, setClink] = useState(0);
   const [sentNote, setSentNote] = useState('');
@@ -45,15 +48,23 @@ export default function Send() {
 
   useFocusEffect(useCallback(() => {
     listFriends().then((r) => setFriends(r.friends)).catch(() => {});
+    listGroups().then(setGroups).catch(() => {});
   }, []));
 
   useEffect(() => {
     if (replyTo && replyToUser) setTo([replyToUser]);
   }, [replyTo, replyToUser]);
+  useEffect(() => {
+    if (toGroup) { setToGroups([toGroup]); setTo([]); }
+  }, [toGroup]);
 
-  const replyName = friends.find((f) => f.id === replyToUser)?.display_name;
-  const replying = !!(replyTo && replyToUser);
-  const endReply = () => router.setParams({ replyTo: '', replyToUser: '' });
+  const groupReplying = !!(replyTo && replyToGroup);
+  const replying = !!(replyTo && (replyToUser || replyToGroup));
+  const replyName = groupReplying
+    ? groups.find((g) => g.id === replyToGroup)?.name
+    : friends.find((f) => f.id === replyToUser)?.display_name;
+  const endReply = () => router.setParams({ replyTo: '', replyToUser: '', replyToGroup: '', toGroup: '' });
+  const toggleGroup = (id: string) => setToGroups((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   async function pick(source: 'camera' | 'library') {
     if (source === 'camera') {
@@ -88,24 +99,30 @@ export default function Send() {
 
   const toggle = (id: string) => setTo((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
-  const names = to.map((id) => friends.find((f) => f.id === id)?.display_name ?? '');
-  const label = !to.length ? 'Send CHEERS!' :
+  const names = [
+    ...to.map((id) => friends.find((f) => f.id === id)?.display_name ?? ''),
+    ...toGroups.map((id) => groups.find((g) => g.id === id)?.name ?? ''),
+  ];
+  const label = !names.length ? 'Send CHEERS!' :
     `Send CHEERS! to ${names.length > 2 ? `${names.length} friends` : names.join(' and ')}`;
 
   async function send() {
-    if (!photo || !to.length) return;
+    if (!photo || (!to.length && !toGroups.length)) return;
     setSending(true);
     try {
-      const isReply = replying && to.includes(replyToUser!);
+      const isReply = !!(replyTo && replyToUser && to.includes(replyToUser));
+      const isGroupReply = !!(replyTo && replyToGroup && toGroups.includes(replyToGroup));
       await sendCheers({
-        photoUri: photo.uri, mimeType: photo.mimeType, locationName: location, recipientIds: to,
+        photoUri: photo.uri, mimeType: photo.mimeType, locationName: location, recipientIds: to, groupIds: toGroups,
         replyTo: isReply ? { id: replyTo!, toUserId: replyToUser! } : undefined,
+        groupReplyTo: isGroupReply ? { id: replyTo!, groupId: replyToGroup! } : undefined,
       });
-      if (isReply) { await cheersBack(replyTo!).catch(() => {}); endReply(); }
+      if (isReply) await cheersBack(replyTo!).catch(() => {});
+      if (replying || toGroup) endReply();
       setLastSent({ uri: photo.uri, location });
       setClink((n) => n + 1);
       setSentNote(`CHEERS! sent to ${names.length > 2 ? `${names.length} friends` : names.join(' and ')}`);
-      setPhoto(null); setLocation(''); setTo([]);
+      setPhoto(null); setLocation(''); setTo([]); setToGroups([]);
     } catch (e: any) {
       Alert.alert('Your CHEERS! didn’t send', e.message);
     } finally {
@@ -138,8 +155,8 @@ export default function Send() {
 
         {replying && (
           <View style={s.replyBar}>
-            <Text style={{ color: t.ink, fontWeight: '700', flex: 1 }}>🍻 Cheering back to {replyName ?? 'your friend'}</Text>
-            <Pressable onPress={() => { endReply(); setTo([]); }} hitSlop={10}>
+            <Text style={{ color: t.ink, fontWeight: '700', flex: 1 }}>🍻 Cheering back {groupReplying ? 'in' : 'to'} {replyName ?? (groupReplying ? 'the group' : 'your friend')}</Text>
+            <Pressable onPress={() => { endReply(); setTo([]); setToGroups([]); }} hitSlop={10}>
               <Text style={{ color: t.muted, fontWeight: '600' }}>Cancel</Text>
             </Pressable>
           </View>
@@ -181,7 +198,18 @@ export default function Send() {
           </Pressable>
         )}
 
-        <PrimaryButton title={label} onPress={send} disabled={!photo || !to.length} loading={sending} style={{ marginTop: 16 }} />
+        {groups.length > 0 && (
+          <>
+            <Text style={s.label}>Groups</Text>
+            <View style={s.row}>
+              {groups.map((g) => (
+                <Chip key={g.id} label={`🍻 ${g.name}`} selected={toGroups.includes(g.id)} onPress={() => toggleGroup(g.id)} />
+              ))}
+            </View>
+          </>
+        )}
+
+        <PrimaryButton title={label} onPress={send} disabled={!photo || (!to.length && !toGroups.length)} loading={sending} style={{ marginTop: 16 }} />
         <SecondaryButton
           title={!photo && lastSent ? 'Also share to a group chat' : 'Share to a group chat'}
           onPress={share} disabled={!shareTarget} loading={sharing} />

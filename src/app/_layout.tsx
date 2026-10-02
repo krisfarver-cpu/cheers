@@ -5,7 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, Shrikhand_400Regular } from '@expo-google-fonts/shrikhand';
 import { AuthProvider, useAuth } from '../lib/auth';
-import { onCheersNotificationTap, registerForPush } from '../lib/push';
+import { CheersNotice, onCheersNotificationTap, registerForPush } from '../lib/push';
 import { useTheme } from '../lib/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -26,13 +26,17 @@ function RootNavigator() {
     registerForPush().catch((e) => console.warn('Push setup skipped:', e.message));
 
     // Tapping a CHEERS! notification opens that drink
-    const off = onCheersNotificationTap((id) => router.push(`/cheers/${id}`));
+    const open = (n: CheersNotice) => {
+      if (typeof n.groupId === 'string') router.push(`/group/${n.groupId}`);
+      else if (typeof n.cheersId === 'string') router.push(`/cheers/${n.cheersId}`);
+    };
+    const off = onCheersNotificationTap(open);
 
     // Same, when the tap launched the app from closed
     Notifications.getLastNotificationResponseAsync().then((r) => {
-      const id = r?.notification.request.content.data?.cheersId;
-      if (typeof id === 'string') {
-        router.push(`/cheers/${id}`);
+      const n = r?.notification.request.content.data as CheersNotice | undefined;
+      if (n && (n.groupId || n.cheersId)) {
+        open(n);
         Notifications.clearLastNotificationResponseAsync?.();
       }
     });
@@ -51,6 +55,12 @@ function RootNavigator() {
           <Stack.Screen name="friends" options={{ presentation: 'modal' }} />
           <Stack.Screen name="report" options={{ presentation: 'modal' }} />
           <Stack.Screen name="account" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="group/new" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="group-info/[id]" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="group/[id]" options={{
+            headerShown: true, title: '', headerBackTitle: 'Back', headerTintColor: t.ink,
+            headerStyle: { backgroundColor: t.bg }, headerShadowVisible: false,
+          }} />
           <Stack.Screen name="thread/[friendId]" options={{
             headerShown: true, title: '', headerBackTitle: 'History', headerTintColor: t.ink,
             headerStyle: { backgroundColor: t.bg }, headerShadowVisible: false,
