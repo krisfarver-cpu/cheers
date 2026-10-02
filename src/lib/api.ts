@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { File } from 'expo-file-system';
 import { supabase } from './supabase';
 
 const BUCKET = 'cheers-photos';
@@ -159,8 +160,7 @@ async function uploadPhoto(path: string, uri: string, contentType: string) {
   const attempt = async () => {
     let body: any;
     if (Platform.OS === 'android') {
-      body = new FormData();
-      body.append('file', { uri, name: path.split('/').pop(), type: contentType } as any);
+      body = await new File(uri).bytes();
     } else {
       body = await fetch(uri).then((r) => r.arrayBuffer());
     }
