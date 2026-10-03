@@ -25,3 +25,10 @@ export async function searchBrands(q: string): Promise<PartnerBrand[]> {
     .eq('partner', PARTNER).ilike('name', `%${term}%`).order('name').limit(6);
   return (data ?? []) as PartnerBrand[];
 }
+
+/** True when a typed brand is one the partner actually carries (catalog name or alias). */
+export async function isPartnerBrand(brand?: string | null): Promise<boolean> {
+  if (!IS_IB || !brand?.trim()) return false;
+  const { data, error } = await supabase.rpc('is_partner_brand', { b: brand.trim() });
+  return !error && data === true;
+}
