@@ -157,8 +157,8 @@ export default function CheersViewer() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, backgroundColor: t.surface, borderWidth: 1, borderColor: t.line }}>
             <Text style={{ fontSize: 26 }}>🍺</Text>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: t.ink, fontWeight: '700', fontSize: 15 }}>{[c.drink_brand, c.drink_category].filter(Boolean).join(' · ')}</Text>
-              {BRAND && carried && <Text style={{ color: t.muted, fontSize: 12 }}>{BRAND.distributedBy}</Text>}
+              <Text style={{ color: t.ink, fontWeight: '700', fontSize: 15 }}>{c.drink_brand || c.drink_category}</Text>
+              {(c.drink_brand && c.drink_category) || (BRAND && carried) ? <Text style={{ color: t.muted, fontSize: 13 }}>{[c.drink_brand ? c.drink_category : null, BRAND && carried ? BRAND.distributedBy : null].filter(Boolean).join(' · ')}</Text> : null}
             </View>
             {findIt ? (
               <Pressable onPress={() => Linking.openURL(findIt)} hitSlop={8} accessibilityLabel="Find it near you">
