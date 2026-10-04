@@ -57,6 +57,7 @@ function RootNavigator() {
           <Stack.Screen name="friends" options={{ presentation: 'modal' }} />
           <Stack.Screen name="report" options={{ presentation: 'modal' }} />
           <Stack.Screen name="account" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="phone" />
           <Stack.Screen name="group/new" options={{ presentation: 'modal' }} />
           <Stack.Screen name="group-info/[id]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="group/[id]" options={{

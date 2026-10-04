@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { deleteAccount, getDiscoverable, setDiscoverable, signOut } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { formatPhone } from '../lib/phone';
 import { PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '../lib/config';
 import { Theme, useTheme } from '../lib/theme';
 import { Avatar } from '../components/Avatar';
@@ -12,7 +13,8 @@ export default function Account() {
   const t = useTheme();
   const s = styles(t);
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
+  const phone = session?.user.phone && session.user.phone_confirmed_at ? session.user.phone : null;
   const [deleting, setDeleting] = useState(false);
   const [discoverable, setDisc] = useState(true);
 
@@ -72,6 +74,13 @@ export default function Account() {
         )}
 
         <Text style={s.label}>Privacy</Text>
+        <Pressable onPress={() => router.push('/phone')} style={s.row} accessibilityRole="button">
+          <View style={{ flex: 1 }}>
+            <Text style={s.rowText}>Phone number</Text>
+            <Text style={{ color: t.muted, fontSize: 13 }}>{phone ? formatPhone(phone) : 'Add it so friends can find you'}</Text>
+          </View>
+          <Text style={{ color: t.muted, fontSize: 18 }}>›</Text>
+        </Pressable>
         <View style={[s.row, { gap: 12 }]}>
           <Text style={[s.rowText, { flex: 1 }]}>Let people find me from their contacts</Text>
           <Switch value={discoverable} onValueChange={toggleDiscoverable} trackColor={{ true: t.accent }} />

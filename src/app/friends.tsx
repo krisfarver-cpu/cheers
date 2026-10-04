@@ -162,7 +162,7 @@ export default function Friends() {
 
         <Text style={s.label}>Find friends from contacts</Text>
         <Text style={s.muted}>
-          See which of your contacts are on CHEERS!. Email addresses are scrambled on your phone before checking, and nothing from your contacts is saved.
+          See which of your contacts are on CHEERS!. Emails and phone numbers are scrambled on your phone before checking, and nothing from your contacts is saved.
         </Text>
         <SecondaryButton title={contacts ? 'Check contacts again' : 'Find friends from contacts'} onPress={scanContacts} loading={scanning} />
         {contacts && contacts.length === 0 && (
