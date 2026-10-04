@@ -11,6 +11,7 @@ import { Theme, useTheme } from '../../lib/theme';
 import { Avatar } from '../../components/Avatar';
 import { BRAND } from '../../lib/brand';
 import { findItUrl, isPartnerBrand } from '../../lib/partner';
+import { track } from '../../lib/analytics';
 import { PrimaryButton, SecondaryButton } from '../../components/Buttons';
 import { inviteMessage, shareCheersPhoto } from '../../lib/share';
 import { ClinkAnimation } from '../../components/ClinkAnimation';
@@ -161,7 +162,7 @@ export default function CheersViewer() {
               {(c.drink_brand && c.drink_category) || (BRAND && carried) ? <Text style={{ color: t.muted, fontSize: 13 }}>{[c.drink_brand ? c.drink_category : null, BRAND && carried ? BRAND.distributedBy : null].filter(Boolean).join(' · ')}</Text> : null}
             </View>
             {findIt ? (
-              <Pressable onPress={() => Linking.openURL(findIt)} hitSlop={8} accessibilityLabel="Find it near you">
+              <Pressable onPress={() => { track({ event: 'find_it_click', brand: c.drink_brand, category: c.drink_category, cheers_id: c.id }); Linking.openURL(findIt); }} hitSlop={8} accessibilityLabel="Find it near you">
                 <Text style={{ color: t.secondary, fontWeight: '700', fontSize: 14 }}>Find it ›</Text>
               </Pressable>
             ) : null}
