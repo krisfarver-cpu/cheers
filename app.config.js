@@ -8,8 +8,8 @@ module.exports = ({ config }) => {
   const brand = './assets/brands/indianabev';
   const plugins = (config.plugins || []).map((p) =>
     (p === 'expo-splash-screen' || (Array.isArray(p) && p[0] === 'expo-splash-screen'))
-      ? ['expo-splash-screen', { backgroundColor: '#FFFFFF', image: `${brand}/splash.png`, imageWidth: 240,
-          dark: { backgroundColor: '#FFFFFF', image: `${brand}/splash.png` } }]
+      ? ['expo-splash-screen', { backgroundColor: '#0B2347', image: `${brand}/splash.png`, imageWidth: 240,
+          dark: { backgroundColor: '#0B2347', image: `${brand}/splash.png` } }]
       : p);
 
   return {
@@ -21,8 +21,8 @@ module.exports = ({ config }) => {
     android: {
       ...config.android,
       package: 'com.cheerssocial.indianabev',
-      googleServicesFile: undefined, // Android for this app needs its own Firebase registration first
-      adaptiveIcon: { backgroundColor: '#FFFFFF', foregroundImage: `${brand}/icon.png` },
+      googleServicesFile: './google-services.indianabev.json',
+      adaptiveIcon: { backgroundColor: '#0B2347', foregroundImage: `${brand}/android-foreground.png` },
     },
     plugins,
     extra: { ...config.extra, variant: 'indianabev' },
