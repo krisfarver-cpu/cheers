@@ -97,11 +97,6 @@ export default function History() {
             Your CHEERS! with each friend will add up here. Add a friend to get started.
           </Text>
         )}
-        ListFooterComponent={
-          <Pressable onPress={() => router.push('/account')} style={{ padding: 24, alignItems: 'center' }}>
-            <Text style={{ color: t.muted, fontWeight: '600' }}>Account and settings</Text>
-          </Pressable>
-        }
         refreshControl={<RefreshControl refreshing={refreshing} tintColor={t.accent}
           onRefresh={() => { setRefreshing(true); load(); }} />}
       />

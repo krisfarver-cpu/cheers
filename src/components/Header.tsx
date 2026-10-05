@@ -1,7 +1,31 @@
 import { ReactNode } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../lib/auth';
+import { Avatar } from './Avatar';
 import { BRAND } from '../lib/brand';
 import { useTheme, WORDMARK_FONT } from '../lib/theme';
+
+/** Your avatar, top right on every tab. Opens Account and settings. */
+function AccountButton() {
+  const t = useTheme();
+  const router = useRouter();
+  const { profile } = useAuth();
+  return (
+    <Pressable onPress={() => router.push('/account')} accessibilityRole="button" accessibilityLabel="Account and settings" hitSlop={8}
+      style={{ borderRadius: 999, borderWidth: 2, borderColor: t.line }}>
+      {profile ? <Avatar profile={profile} size={34} /> : (
+        <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: t.surface }}>
+          <Text>⚙️</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+function RightSide({ right }: { right?: ReactNode }) {
+  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>{right}<AccountButton /></View>;
+}
 
 export function Header({ right }: { right?: ReactNode }) {
   const t = useTheme();
@@ -16,7 +40,7 @@ export function Header({ right }: { right?: ReactNode }) {
             <Image source={BRAND.logo} accessibilityLabel={BRAND.partnerName} style={{ width: 52, height: 32 }} resizeMode="contain" />
           </View>
         </View>
-        {right}
+        <RightSide right={right} />
       </View>
     );
   }
@@ -25,7 +49,7 @@ export function Header({ right }: { right?: ReactNode }) {
       <Text accessibilityRole="header" style={{ fontFamily: WORDMARK_FONT, fontSize: 30, color: t.accent, transform: [{ rotate: '-3deg' }] }}>
         CHEERS!
       </Text>
-      {right}
+      <RightSide right={right} />
     </View>
   );
 }
